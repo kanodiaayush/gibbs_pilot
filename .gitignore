@@ -2,3 +2,4 @@
 *.swn
 *.swo
 *.out.text
+*.weights.text
