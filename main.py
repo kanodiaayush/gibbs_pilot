@@ -50,6 +50,7 @@ def parse(argv):
 
 def load_weights(data, nweights, weights):
   """TODO."""
+  f = open('weightsfile', 'w')
   for i in range(nweights):
     # TODO: read types from struct?
     # TODO: byteswap only if system is little-endian
@@ -64,6 +65,7 @@ def load_weights(data, nweights, weights):
     initialValue = np.frombuffer(buf, dtype=np.float64)[0]
     weights[weightId]["isFixed"] = isFixed
     weights[weightId]["initialValue"] = initialValue
+    f.write("%d\t%d\t%f\n" % (weightId, isFixed, initialValue))
   print("LOADED WEIGHTS")
 
 def reverse_array(data):
@@ -86,6 +88,7 @@ def reverse_array(data):
 
 
 def load_variables(data, nvariables, variables):
+    f = open('variablesfile', 'w')
     for i in range(nvariables):
 
         buf = data[(27 * i):(27 * i + 8)]
@@ -110,12 +113,16 @@ def load_variables(data, nvariables, variables):
         variables[variableId]["initialValue"] = initialValue
         variables[variableId]["dataType"] = dataType
         variables[variableId]["cardinality"] = cardinality
+        f.write("%d\t%d\t%d\t%d\t%d\n" % (variableId, isEvidence, initialValue, dataType, cardinality))
 
     print("LOADED VARS")
+    f.close()
 
 
 def load_factors(data, nfactors, factors, fmap, domain_mask, variable, vmap):
     """TODO."""
+    f = open('factorsfile', 'w')
+    f2 = open('factortovariablefile', 'w')
     index = 0
     fmap_idx = 0
     k = 0  # somehow numba 0.28 would raise LowerError without this line
@@ -143,6 +150,7 @@ def load_factors(data, nfactors, factors, fmap, domain_mask, variable, vmap):
             val = np.frombuffer(buf, dtype=np.int64)[0]
             fmap[fmap_idx + k]["dense_equal_to"] = val
             index += 16
+            f2.write("%d\t%d\t%d\n" % (i, vid, val))
         fmap_idx += arity
 
         buf = data[index:(index + 8)]
@@ -152,10 +160,14 @@ def load_factors(data, nfactors, factors, fmap, domain_mask, variable, vmap):
         buf = data[(index + 8):(index + 16)]
         reverse_array(buf)
         factors[i]["featureValue"] = np.frombuffer(buf, dtype=np.float64)[0]
+        f.write("%d\t%d\t%d\t" % (i, factors[i]["factorFunction"], arity))
+        f.write("%d\t%f\n" % (factors[i]["weightId"], factors[i]["featureValue"]))
         # Ayush: Safe to ignore feature value.
 
         index += 16
 
+    f2.close()
+    f.close()
     print("LOADED FACTORS")
 
 def compute_var_map(variables, factors, fmap, vmap, factor_index, domain_mask):
